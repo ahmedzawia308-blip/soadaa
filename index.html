@@ -76,8 +76,10 @@ main{padding:14px 12px 90px}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 // ===== إعدادات قاعدة البيانات (Supabase): الصق هنا الرابط والمفتاح من لوحة التحكم =====
-const SB_URL='PASTE_PROJECT_URL_HERE';
-const SB_KEY='PASTE_ANON_PUBLIC_KEY_HERE';
+const SB_URL=https://vfjpcfxfoajqpkizywxg.supabase.co/rest/v1/;
+const SB_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmanBjZnhmb2FqcXBraXp5d3hnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NDQzMjMsImV4cCI6MjExMDIyMDMyM30.629DS6HOPtCcma8-tWCSHYc9viewosNnnmDXAr4WcoY       
+
+;
 // ======================================================================
 const sb=(window.supabase&&/^https?:\/\//.test(SB_URL))?supabase.createClient(SB_URL,SB_KEY):null;
 function makeDB(){
