@@ -75,17 +75,18 @@ main{padding:14px 12px 90px}
 <div id="root"></div><div id="mod"></div><div id="toast"></div>
 <script>
 // ===== إعدادات قاعدة البيانات (Supabase): الصق هنا الرابط والمفتاح =====
-const SB_URL='PASTE_PROJECT_URL_HERE';
-const SB_KEY='PASTE_ANON_PUBLIC_KEY_HERE';
+const SB_URL='https://vfjpcfxfoajqpkizywxg.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmanBjZnhmb2FqcXBraXp5d3hnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NDQzMjMsImV4cCI6MjExMDIyMDMyM30.629DS6HOPtCcma8-tWCSHYc9viewosNnnmDXAr4WcoY';
 // ======================================================================
 window.addEventListener('error',function(e){var b=document.getElementById('errbar');if(!b){b=document.createElement('div');b.id='errbar';b.style.cssText='position:fixed;top:0;left:0;right:0;background:#b42318;color:#fff;padding:8px;font-size:13px;z-index:99;direction:ltr';document.body.appendChild(b)}b.textContent='JS error: '+e.message});
 window.addEventListener('unhandledrejection',function(e){var b=document.getElementById('errbar');if(!b){b=document.createElement('div');b.id='errbar';b.style.cssText='position:fixed;top:0;left:0;right:0;background:#b42318;color:#fff;padding:8px;font-size:13px;z-index:99;direction:ltr';document.body.appendChild(b)}b.textContent='Error: '+(e.reason&&e.reason.message||e.reason)});
 let CFG=null;
+const normUrl=x=>{x=String(x||'').trim().replace(/^['"]+|['"]+$/g,'');let m=x.match(/https?:\/\/([a-z0-9]{15,30})\.supabase\.co/i);if(m)return'https://'+m[1].toLowerCase()+'.supabase.co';m=x.match(/project\/([a-z0-9]{15,30})/i);if(m)return'https://'+m[1].toLowerCase()+'.supabase.co';if(/^[a-z0-9]{15,30}$/i.test(x))return'https://'+x.toLowerCase()+'.supabase.co';return''};
+const normKey=x=>String(x||'').replace(/\s+/g,'').replace(/^['"]+|['"]+$/g,'');
 (function(){
- let u=SB_URL,k=SB_KEY;
- if(!/^https:\/\//.test(u)){try{const c=JSON.parse(localStorage.getItem('soadaa_cfg'));if(c){u=c.url;k=c.key}}catch(e){}}
- u=String(u).trim().replace(/\/+$/,'');k=String(k).trim();
- if(/^https:\/\/[^\s\/]+$/.test(u)&&k.length>20&&k.indexOf('PASTE')<0)CFG={url:u,key:k};
+ let u=normUrl(SB_URL),k=normKey(SB_KEY);
+ if(!u||k.length<20||k.indexOf('PASTE')>=0){try{const c=JSON.parse(localStorage.getItem('soadaa_cfg'));if(c){u=normUrl(c.url);k=normKey(c.key)}}catch(e){}}
+ if(u&&k.length>=20&&k.indexOf('PASTE')<0)CFG={url:u,key:k};
 })();
 const hdr=()=>{const h={apikey:CFG.key,'Content-Type':'application/json'};if(CFG.key.indexOf('eyJ')===0)h.Authorization='Bearer '+CFG.key;return h};
 async function rq(p,o){
@@ -112,7 +113,14 @@ function makeDB(){
 function showCfg(){
  const s=document.getElementById('sy');if(!s||document.getElementById('cfgbox'))return;
  s.insertAdjacentHTML('afterend','<div id="cfgbox" class="f"><label>Project URL</label><input id="cu1" dir="ltr" placeholder="https://xxxx.supabase.co"><label style="margin-top:6px">المفتاح (anon public أو Publishable)</label><input id="ck1" dir="ltr"><button type="button" class="btn s" id="cs" style="margin-top:8px;width:100%">حفظ وربط</button></div>');
- document.getElementById('cs').onclick=()=>{try{localStorage.setItem('soadaa_cfg',JSON.stringify({url:document.getElementById('cu1').value,key:document.getElementById('ck1').value}))}catch(e){}location.reload()};
+ document.getElementById('cs').onclick=()=>{
+  const u=normUrl(document.getElementById('cu1').value),k=normKey(document.getElementById('ck1').value),m=document.getElementById('sy');
+  const bad=t=>{m.textContent=t;m.style.color='var(--er)'};
+  if(!u)return bad('الـ URL غير صحيح. لازم يكون بالشكل https://xxxx.supabase.co');
+  if(k.length<20)return bad('المفتاح غير صحيح أو ناقص. انسخه كامل.');
+  try{localStorage.setItem('soadaa_cfg',JSON.stringify({url:u,key:k}))}catch(e){}
+  if(!localStorage.getItem('soadaa_cfg'))return bad('المتصفح بيمنع الحفظ. افتح الرابط من نافذة عادية، أو الصق المفتاحين داخل الملف.');
+  location.reload()};
 }
 </script>
 <script>
@@ -127,7 +135,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const fm=n=>(+n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' ج.م';
 const now=()=>new Date().toLocaleString('ar-EG');
 const today=()=>new Date().toISOString().slice(0,10);
-let DB=null,ready=false,syT='جارٍ تحميل الموقع… (الإصدار 3)',syBad=0,ld,rd;
+let DB=null,ready=false,syT='جارٍ تحميل الموقع… (الإصدار 5)',syBad=0,ld,rd;
 S={users:[{id:1,name:'م/ محمد سيد',pw:'01210309901',perms:{...ALL}},{id:2,name:'أ/ محمد عزوز',pw:'01119667236',perms:{...ALL}}],inv:[],del:[]};
 const er=e=>toast('تعذر الحفظ: '+((e&&e.message)||'تحقق من الاتصال'));
 function setSy(t,b){if(t!==undefined){syT=t;syBad=b}const s=$('#sy');if(s){s.textContent=syT;s.style.color=syBad?'var(--er)':'var(--ok)'}const l=$('#lb');if(l)l.disabled=!ready}
