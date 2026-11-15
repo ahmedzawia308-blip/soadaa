@@ -73,42 +73,46 @@ main{padding:14px 12px 90px}
 </head>
 <body>
 <div id="root"></div><div id="mod"></div><div id="toast"></div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
-// ===== إعدادات قاعدة البيانات (Supabase): الصق هنا الرابط والمفتاح من لوحة التحكم =====
-const SB_URL=https://vfjpcfxfoajqpkizywxg.supabase.co/rest/v1/;
-const SB_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmanBjZnhmb2FqcXBraXp5d3hnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NDQzMjMsImV4cCI6MjExMDIyMDMyM30.629DS6HOPtCcma8-tWCSHYc9viewosNnnmDXAr4WcoY       
-
-;
+// ===== إعدادات قاعدة البيانات (Supabase): الصق هنا الرابط والمفتاح =====
+const SB_URL='PASTE_PROJECT_URL_HERE';
+const SB_KEY='PASTE_ANON_PUBLIC_KEY_HERE';
 // ======================================================================
-const sb=(window.supabase&&/^https?:\/\//.test(SB_URL))?supabase.createClient(SB_URL,SB_KEY):null;
+window.addEventListener('error',function(e){var b=document.getElementById('errbar');if(!b){b=document.createElement('div');b.id='errbar';b.style.cssText='position:fixed;top:0;left:0;right:0;background:#b42318;color:#fff;padding:8px;font-size:13px;z-index:99;direction:ltr';document.body.appendChild(b)}b.textContent='JS error: '+e.message});
+window.addEventListener('unhandledrejection',function(e){var b=document.getElementById('errbar');if(!b){b=document.createElement('div');b.id='errbar';b.style.cssText='position:fixed;top:0;left:0;right:0;background:#b42318;color:#fff;padding:8px;font-size:13px;z-index:99;direction:ltr';document.body.appendChild(b)}b.textContent='Error: '+(e.reason&&e.reason.message||e.reason)});
+let CFG=null;
+(function(){
+ let u=SB_URL,k=SB_KEY;
+ if(!/^https:\/\//.test(u)){try{const c=JSON.parse(localStorage.getItem('soadaa_cfg'));if(c){u=c.url;k=c.key}}catch(e){}}
+ u=String(u).trim().replace(/\/+$/,'');k=String(k).trim();
+ if(/^https:\/\/[^\s\/]+$/.test(u)&&k.length>20&&k.indexOf('PASTE')<0)CFG={url:u,key:k};
+})();
+const hdr=()=>{const h={apikey:CFG.key,'Content-Type':'application/json'};if(CFG.key.indexOf('eyJ')===0)h.Authorization='Bearer '+CFG.key;return h};
+async function rq(p,o){
+ const r=await fetch(CFG.url+'/rest/v1/'+p,Object.assign({headers:hdr()},o));
+ const t=await r.text();
+ if(!r.ok){let m=t;try{m=JSON.parse(t).message||t}catch(e){}throw new Error('HTTP '+r.status+' '+m)}
+ return t?JSON.parse(t):null;
+}
 function makeDB(){
- if(!sb)return null;
- const colOf=p=>p.split('/').slice(0,-1).join('/');
- const watch=(filter,load)=>{
-  load();
-  const ch=sb.channel('c'+Math.random().toString(36).slice(2)).on('postgres_changes',{event:'*',schema:'public',table:'kv',filter},()=>load()).subscribe();
-  const t=setInterval(load,15000);
-  return()=>{clearInterval(t);sb.removeChannel(ch)};
- };
+ if(!CFG)return null;
+ const colOf=p=>p.split('/').slice(0,-1).join('/'),q=encodeURIComponent;
+ const watch=load=>{load();const t=setInterval(load,5000);return()=>clearInterval(t)};
  return{
   doc:path=>({
-   async set(d){const{error}=await sb.from('kv').upsert({path,col:colOf(path),data:d});if(error)throw error},
-   async delete(){const{error}=await sb.from('kv').delete().eq('path',path);if(error)throw error},
-   onSnapshot(next,err){
-    return watch('path=eq.'+path,async()=>{const{data,error}=await sb.from('kv').select('data').eq('path',path).maybeSingle();
-     if(error){err&&err(error);return}
-     next({exists:!!data,fromCache:false,data:()=>data?data.data:undefined})});
-   }
+   set:d=>rq('kv?on_conflict=path',{method:'POST',headers:Object.assign(hdr(),{Prefer:'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify({path,col:colOf(path),data:d})}),
+   delete:()=>rq('kv?path=eq.'+q(path),{method:'DELETE'}),
+   onSnapshot(next,err){let last;return watch(async()=>{try{const a=await rq('kv?select=data&path=eq.'+q(path));const j=JSON.stringify(a);if(j===last)return;last=j;next({exists:a.length>0,fromCache:false,data:()=>a.length?a[0].data:undefined})}catch(e){err&&err(e)}})}
   }),
   collection:name=>({
-   onSnapshot(next,err){
-    return watch('col=eq.'+name,async()=>{const{data,error}=await sb.from('kv').select('path,data').eq('col',name);
-     if(error){err&&err(error);return}
-     next({docs:data.map(r=>({id:r.path.split('/').pop(),data:()=>r.data}))})});
-   }
+   onSnapshot(next,err){let last;return watch(async()=>{try{const a=await rq('kv?select=path,data&col=eq.'+q(name));const j=JSON.stringify(a);if(j===last)return;last=j;next({docs:a.map(r=>({id:r.path.split('/').pop(),data:()=>r.data}))})}catch(e){err&&err(e)}})}
   })
  };
+}
+function showCfg(){
+ const s=document.getElementById('sy');if(!s||document.getElementById('cfgbox'))return;
+ s.insertAdjacentHTML('afterend','<div id="cfgbox" class="f"><label>Project URL</label><input id="cu1" dir="ltr" placeholder="https://xxxx.supabase.co"><label style="margin-top:6px">المفتاح (anon public أو Publishable)</label><input id="ck1" dir="ltr"><button type="button" class="btn s" id="cs" style="margin-top:8px;width:100%">حفظ وربط</button></div>');
+ document.getElementById('cs').onclick=()=>{try{localStorage.setItem('soadaa_cfg',JSON.stringify({url:document.getElementById('cu1').value,key:document.getElementById('ck1').value}))}catch(e){}location.reload()};
 }
 </script>
 <script>
@@ -123,9 +127,9 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const fm=n=>(+n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' ج.م';
 const now=()=>new Date().toLocaleString('ar-EG');
 const today=()=>new Date().toISOString().slice(0,10);
-let DB=null,ready=false,syT='',syBad=0,ld,rd;
+let DB=null,ready=false,syT='جارٍ تحميل الموقع… (الإصدار 3)',syBad=0,ld,rd;
 S={users:[{id:1,name:'م/ محمد سيد',pw:'01210309901',perms:{...ALL}},{id:2,name:'أ/ محمد عزوز',pw:'01119667236',perms:{...ALL}}],inv:[],del:[]};
-const er=()=>toast('تعذر الحفظ، تحقق من الاتصال بالإنترنت');
+const er=e=>toast('تعذر الحفظ: '+((e&&e.message)||'تحقق من الاتصال'));
 function setSy(t,b){if(t!==undefined){syT=t;syBad=b}const s=$('#sy');if(s){s.textContent=syT;s.style.color=syBad?'var(--er)':'var(--ok)'}const l=$('#lb');if(l)l.disabled=!ready}
 const saveUsers=()=>{if(DB)DB.doc('settings/users').set({list:S.users}).catch(er);else er()};
 const cp=o=>JSON.parse(JSON.stringify(o));
@@ -232,18 +236,19 @@ function set(){
 }
 function refresh(){if(!me)return;if(view==='dash')dash();else if(view==='list'){if(document.activeElement&&document.activeElement.id==='sq'&&ld)ld();else list()}else if(view==='rep'&&can('rep')&&rd)rd()}
 login();
-(async()=>{
+(async()=>{try{
  DB=makeDB();
- if(!DB){setSy('لم يتم ضبط قاعدة البيانات بعد. راجع مفاتيح الاتصال داخل الملف.',1);return}
+ if(!DB){setSy('أدخل مفاتيح الاتصال بقاعدة البيانات لتفعيل الموقع.',1);showCfg();return}
  setSy('جارٍ الاتصال بقاعدة البيانات…',0);
  const tm=setTimeout(()=>{if(!ready)setSy('يتعذر الوصول لقاعدة البيانات حاليًا. تحقق من الاتصال بالإنترنت.',1)},10000);
  DB.doc('settings/users').onSnapshot(s=>{
   if(s.exists){S.users=cp(s.data().list);if(me){const n=S.users.find(x=>x.id===me.id);if(n)me=n}}
   else if(!s.fromCache){DB.doc('settings/users').set({list:S.users}).catch(er)}
   if((s.exists||!s.fromCache)&&!ready){ready=true;clearTimeout(tm);setSy('متصل بقاعدة البيانات ✓',0)}
- },()=>setSy('تعذر الاتصال بقاعدة البيانات',1));
- DB.collection('invoices').onSnapshot(s=>{S.inv=s.docs.map(d=>cp(d.data()));refresh()},()=>setSy('تعذر تحميل الفواتير',1));
+ },e=>setSy('تعذر الاتصال: '+((e&&e.message)||e),1));
+ DB.collection('invoices').onSnapshot(s=>{S.inv=s.docs.map(d=>cp(d.data()));refresh()},e=>setSy('تعذر تحميل الفواتير: '+((e&&e.message)||e),1));
  DB.collection('deleted').onSnapshot(s=>{S.del=s.docs.map(d=>cp(d.data())).sort((a,b)=>a.ts-b.ts);refresh()},()=>{});
+}catch(e){setSy('خطأ: '+e.message,1)}
 })();
 </script>
 </body>
