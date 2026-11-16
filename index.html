@@ -3,6 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.webmanifest">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0f5132">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="السعداء">
 <title>السعداء جروب – إدارة تكاليف الورش</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
@@ -68,6 +76,13 @@ main{padding:14px 12px 90px}
 .it>div:nth-child(1),.it>div:nth-child(2){grid-column:1/-1}
 .hdm{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 }
+@media(max-width:820px){.br2{grid-template-columns:80px 1fr auto}}
+.mu{color:var(--mu)}.ld{text-align:center;color:var(--mu);padding:28px}.ld:before{content:"";display:inline-block;width:18px;height:18px;border:3px solid var(--bd);border-top-color:var(--g2);border-radius:50%;animation:sp 1s linear infinite;vertical-align:middle;margin-left:8px}@keyframes sp{to{transform:rotate(360deg)}}
+.kp{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.kp .card{margin:0;border-top:4px solid var(--g2)}.kp b{display:block;font-size:19px}.kp span{color:var(--mu);font-size:13px}
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px}.g2>.card{margin:0}
+.br2{display:grid;grid-template-columns:110px 1fr auto;gap:8px;align-items:center;margin:6px 0;font-size:13px}.bl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bt{background:var(--hl);border-radius:6px;height:12px}.bt i{display:block;height:100%;background:var(--g2);border-radius:6px}
+.dn{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.ring{width:140px;height:140px;border-radius:50%;display:grid;place-items:center}.ring span{background:var(--card);border-radius:50%;width:86px;height:86px;display:grid;place-items:center;font-size:11px;font-weight:700;text-align:center}.lg{font-size:13px}.lg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-left:6px}
+.cl{display:flex;gap:6px;align-items:flex-end;overflow-x:auto}.cc{flex:1;min-width:50px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;font-size:11px}.cc i{display:block;width:70%;background:var(--g2);border-radius:5px 5px 0 0}.ins li{margin:6px 0}
 @media print{aside,.bn,.np{display:none!important}.app{display:block}}
 </style>
 </head>
@@ -90,9 +105,10 @@ const normKey=x=>String(x||'').replace(/\s+/g,'').replace(/^['"]+|['"]+$/g,'');
 })();
 const hdr=()=>{const h={apikey:CFG.key,'Content-Type':'application/json'};if(CFG.key.indexOf('eyJ')===0)h.Authorization='Bearer '+CFG.key;return h};
 async function rq(p,o){
- const r=await fetch(CFG.url+'/rest/v1/'+p,Object.assign({headers:hdr()},o));
- const t=await r.text();
- if(!r.ok){let m=t;try{m=JSON.parse(t).message||t}catch(e){}throw new Error('HTTP '+r.status+' '+m)}
+ let r,t;
+ for(let k=0;k<2;k++){try{r=await fetch(CFG.url+'/rest/v1/'+p,Object.assign({headers:hdr()},o));t=await r.text();break}catch(e){if(k){window.onNet&&onNet(false,e);throw e}await new Promise(z=>setTimeout(z,700))}}
+ if(!r.ok){let m=t;try{m=JSON.parse(t).message||t}catch(e){}const x=new Error('HTTP '+r.status+' '+m);window.onNet&&onNet(false,x);throw x}
+ window.onNet&&onNet(true);
  return t?JSON.parse(t):null;
 }
 function makeDB(){
@@ -141,6 +157,7 @@ const er=e=>toast('تعذر الحفظ: '+((e&&e.message)||'تحقق من الا
 function setSy(t,b){if(t!==undefined){syT=t;syBad=b}const s=$('#sy');if(s){s.textContent=syT;s.style.color=syBad?'var(--er)':'var(--ok)'}const l=$('#lb');if(l)l.disabled=!ready}
 const saveUsers=()=>{if(DB)DB.doc('settings/users').set({list:S.users}).catch(er);else er()};
 const cp=o=>JSON.parse(JSON.stringify(o));
+let netBad=0;window.onNet=(ok,e)=>{if(ok){if(netBad){netBad=0;setSy('متصل بقاعدة البيانات ✓',0)}}else{netBad=1;setSy('تعذر الاتصال'+(e&&e.message?': '+e.message:'')+' — جارٍ إعادة المحاولة…',1)}};
 const toast=m=>{const t=$('#toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2200)};
 const logo=c=>LOGO?`<img class="${c}" src="${esc(LOGO)}" alt="شعار السعداء">`:`<svg class="${c}" viewBox="0 0 100 100" role="img" aria-label="شعار السعداء"><path d="M50 5 90 20v30c0 25-17 38-40 46C27 88 10 75 10 50V20z" fill="#0f5132"/><path d="M50 14 82 26v24c0 19-13 30-32 37-19-7-32-18-32-37V26z" fill="none" stroke="#fff" stroke-width="3"/><text x="50" y="62" font-size="38" font-weight="800" fill="#fff" text-anchor="middle" font-family="Cairo,Tahoma,sans-serif">س</text></svg>`;
 const can=p=>me&&me.perms[p];
@@ -175,14 +192,14 @@ function dash(){
 function tbl(a,act){
  return `<table><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>السيارة</th><th>الإجمالي</th><th>سجّلها</th><th></th></tr>${a.map(i=>`<tr><td>${esc(i.no)}</td><td>${esc(i.date)}</td><td>${esc(i.plate)} <span class="tag">${esc(i.code)}</span></td><td>${fm(tot(i))}</td><td>${esc(i.by)}</td><td><button class="btn s sm" data-vw="${i.id}">عرض</button>${act&&can('edit')?` <button class="btn s sm" data-ed="${i.id}">تعديل</button>`:''}${act&&can('del')?` <button class="btn d sm" data-dl="${i.id}">حذف</button>`:''}</td></tr>`).join('')}</table>`;
 }
-function bindRows(){
+function bindRows(){document.querySelectorAll('[data-pi]').forEach(b=>b.onclick=()=>printInv(+b.dataset.pi));
  document.querySelectorAll('[data-vw]').forEach(b=>b.onclick=()=>show(+b.dataset.vw));
  document.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{editId=+b.dataset.ed;view='add';shell()});
  document.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>{const i=S.inv.find(x=>x.id==b.dataset.dl);if(confirm('حذف الفاتورة رقم '+i.no+'؟')){const dd={no:i.no,plate:i.plate,total:tot(i),by:me.name,at:now(),ts:Date.now()};S.inv=S.inv.filter(x=>x!==i);S.del.push(dd);if(DB){DB.doc('invoices/'+i.id).delete().catch(er);DB.doc('deleted/'+dd.ts).set(dd).catch(er)}else er();toast('تم حذف الفاتورة');shell()}});
 }
 function show(id){
  const i=S.inv.find(x=>x.id===id),m=$('#mod');
- m.innerHTML=`<div><h2>فاتورة رقم ${esc(i.no)}</h2><p>السيارة: <b>${esc(i.plate)}</b> – الكود: ${esc(i.code)}<br>التاريخ: ${esc(i.date)} – السداد: ${esc(i.method)}<br>جهة الخصم/العهدة: ${esc(i.custody)}<br>طلب الأوردر: ${esc(i.order||'-')} – أمر التوريد: ${esc(i.po||'-')}</p>
+ m.innerHTML=`<div><h2>فاتورة رقم ${esc(i.no)}</h2><p>السيارة: <b>${esc(i.plate)}</b> – الكود: ${esc(i.code)}<br>التاريخ: ${esc(i.date)} – السداد: ${esc(i.method)}<br>جهة الخصم/العهدة: ${esc(i.custody)}<br>طلب الأوردر: ${esc(i.order||'-')} – أمر التوريد: ${esc(i.po||'-')}<br>المورد: ${esc(i.supplier||'-')}</p>
  <div class="tw"><table><tr><th>النوع</th><th>البيان</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>${i.items.map(x=>`<tr><td>${esc(x.type)}</td><td style="white-space:normal">${esc(x.desc)}</td><td>${x.qty}</td><td>${fm(x.price)}</td><td>${fm(x.qty*x.price)}</td></tr>`).join('')}</table></div>
  <div class="tot"><span>إجمالي الفاتورة</span><span>${fm(tot(i))}</span></div>
  <p style="color:var(--mu);font-size:13px">سجّلها: ${esc(i.by)} – ${esc(i.at)}${i.modBy?`<br>آخر تعديل: ${esc(i.modBy)} – ${esc(i.modAt)}`:''}</p><button class="btn" id="cl">إغلاق</button></div>`;
@@ -197,7 +214,7 @@ function addV(){
  ${f('pl','رقم السيارة / اللوحة',e.plate)}${f('cd','كود السيارة',e.code)}${f('no','رقم الفاتورة',e.no)}${f('dt','تاريخ الفاتورة',e.date,'date')}
  <div><label for="mt">طريقة السداد</label><select id="mt">${['نقدي','شيك','تحويل بنكي','آجل','عهدة'].map(x=>`<option ${e.method===x?'selected':''}>${x}</option>`).join('')}</select></div>
  <div><label for="cu">جهة الخصم / العهدة</label><input id="cu" list="cl" value="${esc(e.custody)}"><datalist id="cl">${S.users.map(u=>`<option value="عهدة ${esc(u.name)}">`).join('')}<option value="حساب الشركة"></datalist></div>
- ${f('od','طلب الأوردر',e.order)}${f('po','رقم أمر التوريد',e.po)}</div></div>
+ ${f('od','طلب الأوردر',e.order)}${f('po','رقم أمر التوريد',e.po)}${f('sp','اسم المورد',e.supplier||'')}</div></div>
  <div class="card"><b>بنود الفاتورة</b><div id="its">${e.items.map(itRow).join('')}</div><button class="btn s" id="ai" style="margin-top:10px">+ إضافة بند</button>
  <div class="tot"><span>إجمالي الفاتورة</span><span id="gt">0</span></div><div class="row"><button class="btn" id="sv">حفظ الفاتورة</button><button class="btn s" id="cn">إلغاء</button></div></div>`;
  const calc=()=>{let g=0;document.querySelectorAll('.it').forEach(r=>{const l=(+r.querySelector('.qt').value||0)*(+r.querySelector('.pr').value||0);r.querySelector('.lt').value=fm(l);g+=l});$('#gt').textContent=fm(g)};
@@ -207,29 +224,104 @@ function addV(){
  $('#cn').onclick=()=>{editId=null;view='list';shell()};
  $('#sv').onclick=()=>{
   const items=[...document.querySelectorAll('.it')].map(r=>({type:r.querySelector('.ty').value,desc:r.querySelector('.ds').value.trim(),qty:+r.querySelector('.qt').value||0,price:+r.querySelector('.pr').value||0}));
-  const d={plate:$('#pl').value.trim(),code:$('#cd').value.trim(),no:$('#no').value.trim(),date:$('#dt').value,method:$('#mt').value,custody:$('#cu').value.trim(),order:$('#od').value.trim(),po:$('#po').value.trim(),items};
+  const d={plate:$('#pl').value.trim(),code:$('#cd').value.trim(),no:$('#no').value.trim(),date:$('#dt').value,method:$('#mt').value,custody:$('#cu').value.trim(),order:$('#od').value.trim(),po:$('#po').value.trim(),supplier:$('#sp').value.trim(),items};
   if(!d.plate||!d.no||!d.date){toast('أدخل رقم السيارة ورقم الفاتورة والتاريخ');return}
   if(items.some(x=>!x.desc||x.qty<=0)){toast('كل بند يحتاج وصفًا وكمية أكبر من صفر');return}
   let o;if(editId){o=Object.assign(e,d,{modBy:me.name,modAt:now()})}else{o={...d,id:Date.now(),by:me.name,at:now()};S.inv.push(o)}
   if(DB)DB.doc('invoices/'+o.id).set(o).catch(er);else er();toast('تم حفظ الفاتورة');editId=null;view='list';shell();
  };
 }
+const FLD=[['t','بحث شامل'],['d1','من تاريخ','date'],['d2','إلى تاريخ','date'],['ty','نوع البيان',TY],['sp','المورد',1],['ord','رقم طلب الأوردر'],['po','رقم أمر التوريد'],['no','رقم الفاتورة'],['pl','رقم السيارة / الكود'],['ds','الصنف / وصف البيان'],['me','طريقة السداد',['نقدي','شيك','تحويل بنكي','آجل','عهدة']],['cu','جهة الخصم / العهدة'],['q1','الكمية من','number'],['q2','الكمية إلى','number'],['p1','سعر الوحدة من','number'],['p2','سعر الوحدة إلى','number']];
+const FD=()=>Object.fromEntries(FLD.map(f=>[f[0],'']));
+let FL=FD(),FR=FD();
+const nz=v=>String(v==null?'':v).toLowerCase().trim(),inc=(a,b)=>!b||nz(a).includes(nz(b));
+const uq=f=>[...new Set(S.inv.map(f).filter(Boolean))].sort();
+function rowsOf(F){const out=[];
+ S.inv.forEach(i=>{
+  if(F.d1&&i.date<F.d1||F.d2&&i.date>F.d2)return;
+  if(!inc(i.no,F.no)||!inc(i.order,F.ord)||!inc(i.po,F.po)||!inc(i.custody,F.cu)||F.pl&&!inc(i.plate+' '+i.code,F.pl))return;
+  if(F.sp&&i.supplier!==F.sp||F.me&&i.method!==F.me)return;
+  const hay=nz([i.plate,i.code,i.no,i.date,i.method,i.custody,i.order,i.po,i.supplier,i.by].join(' ')),t=nz(F.t);
+  i.items.forEach(x=>{
+   if(F.ty&&x.type!==F.ty||!inc(x.desc,F.ds))return;
+   if(F.q1!==''&&x.qty<+F.q1||F.q2!==''&&x.qty>+F.q2||F.p1!==''&&x.price<+F.p1||F.p2!==''&&x.price>+F.p2)return;
+   if(t&&!hay.includes(t)&&!nz([x.desc,x.type,x.qty,x.price,x.qty*x.price].join(' ')).includes(t))return;
+   out.push({i,x,v:x.qty*x.price})})});
+ return out}
+const grp=rs=>{const m=new Map();rs.forEach(r=>{let g=m.get(r.i.id);if(!g){g={i:r.i,v:0};m.set(r.i.id,g)}g.v+=r.v});return[...m.values()]};
+const sumBy=(rs,f)=>{const m={};rs.forEach(r=>{const k=f(r);if(k)m[k]=(m[k]||0)+r.v});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+function panel(F){
+ const fld=([k,l,o])=>`<div><label>${l}</label>${Array.isArray(o)||o===1?`<select data-f="${k}"><option value="">الكل</option>${(o===1?uq(i=>i.supplier):o).map(v=>`<option ${F[k]===v?'selected':''}>${esc(v)}</option>`).join('')}</select>`:`<input data-f="${k}" type="${o||'text'}" value="${esc(F[k])}"${k==='ord'||k==='po'?` list="dl_${k}"`:''}>`}</div>`;
+ return `<details class="card np" open><summary style="cursor:pointer;font-weight:700;color:var(--g)">🔍 البحث والفلاتر</summary><div class="grid hd" style="margin-top:10px">${FLD.map(fld).join('')}</div>${[['ord','order'],['po','po']].map(([k,f])=>`<datalist id="dl_${k}">${uq(i=>i[f]).map(v=>`<option value="${esc(v)}">`).join('')}</datalist>`).join('')}<button class="btn s sm" id="fr" style="margin-top:10px">مسح الفلاتر</button></details>`}
+const bindP=(F,go,again)=>{document.querySelectorAll('[data-f]').forEach(e=>e.oninput=e.onchange=()=>{F[e.dataset.f]=e.value;go()});$('#fr').onclick=()=>{Object.assign(F,FD());again()}};
+const fsum=F=>FLD.filter(f=>F[f[0]]).map(f=>f[1]+': '+F[f[0]]).join(' | ')||'بدون فلاتر';
+const tbl2=(g,a)=>`<table><tr><th>رقم الفاتورة</th><th>التاريخ</th><th>السيارة</th><th>المورد</th><th>الأوردر / التوريد</th><th>القيمة</th>${a?'<th></th>':''}</tr>${g.map(({i,v})=>`<tr><td>${esc(i.no)}</td><td>${esc(i.date)}</td><td>${esc(i.plate)}</td><td>${esc(i.supplier||'-')}</td><td>${esc(i.order||'-')} / ${esc(i.po||'-')}</td><td>${fm(v)}</td>${a?`<td><button class="btn s sm" data-vw="${i.id}">عرض</button> <button class="btn s sm" data-pi="${i.id}">🖨</button>${can('edit')?` <button class="btn s sm" data-ed="${i.id}">تعديل</button>`:''}${can('del')?` <button class="btn d sm" data-dl="${i.id}">حذف</button>`:''}</td>`:''}</tr>`).join('')}</table>`;
+function pr(title,body,land){
+ const f=document.createElement('iframe');f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';document.body.appendChild(f);
+ const d=f.contentWindow.document;d.open();
+ d.write(`<!DOCTYPE html><html lang="ar" dir="rtl" data-theme="light"><head><meta charset="utf-8"><title>${esc(title)}</title><style>${document.querySelector('style').textContent}
+@page{size:A4 ${land?'landscape':'portrait'};margin:12mm}body{background:#fff;color:#14231b}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.ph{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #0f5132;padding-bottom:8px;margin-bottom:12px}.ph img{width:170px;padding:0}.ph div{text-align:left;font-size:12px}table{font-size:11px}th,td{white-space:normal}.card{break-inside:avoid}</style></head><body><div class="ph">${logo('logo')}<div><b style="font-size:16px">${esc(title)}</b><br>تاريخ الاستخراج: ${now()}<br>المستخدم: ${esc(me.name)}</div></div>${body}</body></html>`);
+ d.close();setTimeout(()=>{f.contentWindow.focus();f.contentWindow.print();setTimeout(()=>f.remove(),3000)},500)}
+function printInv(id){const i=S.inv.find(x=>x.id===id);if(!i)return;
+ pr('فاتورة رقم '+i.no,`<p>السيارة: <b>${esc(i.plate)}</b> – الكود: ${esc(i.code)}<br>التاريخ: ${esc(i.date)} – السداد: ${esc(i.method)}<br>جهة الخصم/العهدة: ${esc(i.custody)}<br>المورد: ${esc(i.supplier||'-')} – الأوردر: ${esc(i.order||'-')} – أمر التوريد: ${esc(i.po||'-')}</p><table><tr><th>النوع</th><th>البيان</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr>${i.items.map(x=>`<tr><td>${esc(x.type)}</td><td>${esc(x.desc)}</td><td>${x.qty}</td><td>${fm(x.price)}</td><td>${fm(x.qty*x.price)}</td></tr>`).join('')}</table><div class="tot"><span>إجمالي الفاتورة</span><span>${fm(tot(i))}</span></div><p class="mu">سجّلها: ${esc(i.by)} – ${esc(i.at)}</p>`)}
+function xl(rs,name,extra){
+ if(!window.XLSX)return toast('تعذر تحميل مكتبة Excel، تحقق من الإنترنت');
+ if(!rs.length)return toast('لا توجد بيانات للتصدير');
+ const A=[['رقم الفاتورة','التاريخ','رقم السيارة','كود السيارة','المورد','نوع البيان','وصف البيان','الكمية','سعر الوحدة','إجمالي البند','طريقة السداد','جهة الخصم','طلب الأوردر','أمر التوريد','سجّلها'],...rs.map(r=>[r.i.no,r.i.date,r.i.plate,r.i.code,r.i.supplier||'',r.x.type,r.x.desc,r.x.qty,r.x.price,r.v,r.i.method,r.i.custody,r.i.order||'',r.i.po||'',r.i.by]),[],['الإجمالي','','','','','','',rs.reduce((a,r)=>a+r.x.qty,0),'',rs.reduce((a,r)=>a+r.v,0)]];
+ const ws=XLSX.utils.aoa_to_sheet(A);ws['!cols']=[12,12,14,12,18,18,34,10,12,14,12,18,14,14,16].map(w=>({wch:w}));
+ for(let r=1;r<A.length;r++)[7,8,9].forEach(c=>{const z=ws[XLSX.utils.encode_cell({r,c})];if(z&&typeof z.v==='number')z.z='#,##0.00'});
+ const wb=XLSX.utils.book_new();wb.Workbook={Views:[{RTL:true}]};XLSX.utils.book_append_sheet(wb,ws,'البيانات');
+ (extra||[]).forEach(([n,a])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(a),n));
+ XLSX.writeFile(wb,name+'_'+today()+'.xlsx')}
 function list(){
- $('#m').innerHTML=`<h2>الفواتير</h2><div class="card np"><input id="sq" placeholder="ابحث برقم السيارة أو الكود أو رقم الفاتورة أو أمر التوريد أو البيان" value="${esc(q)}"></div><div class="card"><div class="tw" id="lt"></div></div>
- <div class="card"><b>سجل المحذوفات</b><div class="tw">${S.del.length?`<table><tr><th>الفاتورة</th><th>السيارة</th><th>القيمة</th><th>حذفها</th><th>الوقت</th></tr>${S.del.map(x=>`<tr><td>${esc(x.no)}</td><td>${esc(x.plate)}</td><td>${fm(x.total)}</td><td>${esc(x.by)}</td><td>${esc(x.at)}</td></tr>`).join('')}</table>`:'<p style="color:var(--mu)">لا توجد فواتير محذوفة.</p>'}</div></div>`;
- const draw=()=>{const s=q.trim().toLowerCase(),a=S.inv.filter(i=>!s||[i.plate,i.code,i.no,i.po,i.order,...i.items.map(x=>x.desc)].join(' ').toLowerCase().includes(s)).sort((a,b)=>b.id-a.id);$('#lt').innerHTML=a.length?tbl(a,true):'<p style="color:var(--mu)">لا توجد نتائج مطابقة.</p>';bindRows()};
- ld=draw;draw();$('#sq').oninput=e=>{q=e.target.value;draw()};
-}
+ const F=FL;
+ $('#m').innerHTML=`<h2>الفواتير</h2>${panel(F)}<div id="rs"></div><div class="card"><b>سجل المحذوفات</b><div class="tw" id="dl"></div></div>`;
+ const draw=()=>{
+  $('#dl').innerHTML=S.del.length?`<table><tr><th>الفاتورة</th><th>السيارة</th><th>القيمة</th><th>حذفها</th><th>الوقت</th></tr>${S.del.map(x=>`<tr><td>${esc(x.no)}</td><td>${esc(x.plate)}</td><td>${fm(x.total)}</td><td>${esc(x.by)}</td><td>${esc(x.at)}</td></tr>`).join('')}</table>`:'<p class="mu">لا توجد فواتير محذوفة.</p>';
+  if(!S.ld){$('#rs').innerHTML='<div class="card ld">جارٍ التحميل…</div>';return}
+  const rs=rowsOf(F),g=grp(rs).sort((a,b)=>b.i.id-a.i.id),T=rs.reduce((a,r)=>a+r.v,0);
+  $('#rs').innerHTML=`<div class="card"><div class="row np" style="justify-content:space-between;margin-bottom:8px"><div><span class="tag">عدد الفواتير: ${g.length}</span> <span class="tag">الإجمالي: ${fm(T)}</span></div><div class="row"><button class="btn s sm" id="p1">🖨 طباعة النتائج</button><button class="btn s sm" id="x1">⬇ Excel</button></div></div><div class="tw">${g.length?tbl2(g,1):'<p class="mu" style="text-align:center">لا توجد فواتير مطابقة للبحث.</p>'}</div></div>`;
+  $('#p1').onclick=()=>pr('نتائج البحث في الفواتير',`<p class="mu">الفلاتر: ${esc(fsum(F))}<br>عدد الفواتير: ${g.length} – الإجمالي: ${fm(T)}</p><div class="tw">${tbl2(g,0)}</div>`,1);
+  $('#x1').onclick=()=>xl(rs,'فواتير');bindRows()};
+ ld=draw;bindP(F,draw,list);draw()}
+const PAL=['#0f5132','#14803f','#4fb477','#9bd3ae','#c9a227','#6b7f74'];
+const sh=v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'K':Math.round(v);
+const tab=a=>`<div class="tw"><table><tr><th>البند</th><th>القيمة</th></tr>${a.map(([k,v])=>`<tr><td>${esc(k)}</td><td>${fm(v)}</td></tr>`).join('')}<tr><th>الإجمالي</th><th>${fm(a.reduce((s,x)=>s+x[1],0))}</th></tr></table></div>`;
+const bars=a=>a.slice(0,10).map(([k,v])=>`<div class="br2"><span class="bl" title="${esc(k)}">${esc(k)}</span><div class="bt"><i style="width:${v/a[0][1]*100}%"></i></div><b>${fm(v)}</b></div>`).join('');
+const cols=a=>{const m=Math.max(...a.map(x=>x[1]),1);return `<div class="cl">${a.map(x=>`<div class="cc"><b>${sh(x[1])}</b><i style="height:${Math.max(Math.round(x[1]/m*110),2)}px"></i><span>${x[0]}</span></div>`).join('')}</div>`};
+const donut=(a,T)=>{let c=0;const sg=a.map(([k,v],i)=>{const s=c;c+=v/T*100;return `${PAL[i%6]} ${s}% ${c}%`}).join(',');return `<div class="dn"><div class="ring" style="background:conic-gradient(${sg})"><span>${fm(T)}</span></div><div>${a.map(([k,v],i)=>`<div class="lg"><i style="background:${PAL[i%6]}"></i>${esc(k)} – ${(v/T*100).toFixed(1)}%</div>`).join('')}</div></div>`};
+function line(p){
+ if(p.length<2)return p.length?`<p class="mu">يوجد تاريخ واحد فقط (${esc(p[0][0])}): ${fm(p[0][1])}</p>`:'';
+ const W=600,H=170,P=24,m=Math.max(...p.map(x=>x[1]),1),X=i=>P+i*(W-2*P)/(p.length-1),Y=v=>H-P-v/m*(H-2*P);
+ return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto"><polyline points="${p.map((x,i)=>X(i)+','+Y(x[1])).join(' ')}" fill="none" stroke="#14803f" stroke-width="3"/>${p.map((x,i)=>`<circle cx="${X(i)}" cy="${Y(x[1])}" r="4" fill="#0f5132"><title>${x[0]}: ${fm(x[1])}</title></circle>`).join('')}<text x="${P}" y="${H-5}" font-size="11" fill="#5d6f65">${p[0][0]}</text><text x="${W-P}" y="${H-5}" font-size="11" fill="#5d6f65" text-anchor="end">${p[p.length-1][0]}</text></svg>`}
 function rep(){
  if(!can('rep')){$('#m').innerHTML='<h2>غير مصرّح</h2><p>ليس لديك صلاحية عرض التقارير.</p>';return}
- $('#m').innerHTML=`<h2>التقارير</h2><div class="card np row"><div class="grow"><label>من تاريخ</label><input type="date" id="f1"></div><div class="grow"><label>إلى تاريخ</label><input type="date" id="f2"></div><button class="btn" id="pr">طباعة</button></div><div id="rb"></div>`;
+ const F=FR;
+ $('#m').innerHTML=`<h2>التقارير والتحليلات</h2>${panel(F)}<div id="ra"></div>`;
  const draw=()=>{
-  const a=S.inv.filter(i=>(!$('#f1').value||i.date>=$('#f1').value)&&(!$('#f2').value||i.date<=$('#f2').value)),s=sums(a),by={};
-  a.forEach(i=>{by[i.plate]=(by[i.plate]||0)+tot(i)});
-  $('#rb').innerHTML=`<div class="card"><b>حسب نوع البيان</b><div class="tw"><table><tr><th>النوع</th><th>الإجمالي</th></tr>${TY.map((t,k)=>`<tr><td>${t}</td><td>${fm(s[k])}</td></tr>`).join('')}<tr><th>الإجمالي الكلي</th><th>${fm(s[0]+s[1]+s[2])}</th></tr></table></div></div>
-  <div class="card"><b>حسب السيارة</b><div class="tw">${a.length?`<table><tr><th>السيارة</th><th>التكلفة</th></tr>${Object.entries(by).sort((x,y)=>y[1]-x[1]).map(x=>`<tr><td>${esc(x[0])}</td><td>${fm(x[1])}</td></tr>`).join('')}</table>`:'<p style="color:var(--mu)">لا توجد بيانات في هذه الفترة.</p>'}</div></div>`};
- rd=draw;draw();$('#f1').onchange=draw;$('#f2').onchange=draw;$('#pr').onclick=()=>window.print();
-}
+  const A=$('#ra');
+  if(!S.ld){A.innerHTML='<div class="card ld">جارٍ التحميل…</div>';return}
+  const rs=rowsOf(F);
+  if(!rs.length){A.innerHTML='<div class="card mu" style="text-align:center">لا توجد بيانات مطابقة للفلاتر الحالية.</div>';return}
+  const g=grp(rs),T=rs.reduce((a,r)=>a+r.v,0),N=g.length,Q=rs.reduce((a,r)=>a+r.x.qty,0),st=f=>new Set(rs.map(f).filter(Boolean)),O=st(r=>r.i.order),PO=st(r=>r.i.po),SP=st(r=>r.i.supplier);
+  const bt=sumBy(rs,r=>r.x.type),bs=sumBy(rs,r=>r.i.supplier),bi=sumBy(rs,r=>r.x.desc.trim()),bc=sumBy(rs,r=>r.i.plate);
+  const dm={},mm={};rs.forEach(r=>{dm[r.i.date]=(dm[r.i.date]||0)+r.v;const k=r.i.date.slice(0,7);mm[k]=(mm[k]||0)+r.v});
+  const days=Object.entries(dm).sort(),mons=Object.entries(mm).sort();
+  const K=[['عدد الفواتير',N],['إجمالي القيمة',fm(T)],['متوسط الفاتورة',fm(T/N)],['إجمالي الكميات',Q.toLocaleString('en-US')]];
+  if(O.size)K.push(['أوامر الأوردر',O.size]);if(PO.size)K.push(['أوامر التوريد',PO.size]);if(SP.size)K.push(['الموردين',SP.size]);
+  const cnt={};rs.forEach(r=>cnt[r.x.type]=(cnt[r.x.type]||0)+1);const ct=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0],mx=g.reduce((a,b)=>b.v>a.v?b:a),I=[];
+  I.push(`أكثر أنواع البيان تكرارًا: <b>${esc(ct[0])}</b> (${ct[1]} بند)، وأعلى نوع قيمةً: <b>${esc(bt[0][0])}</b> بنسبة ${(bt[0][1]/T*100).toFixed(1)}%.`);
+  if(bs.length)I.push(`أعلى الموردين قيمةً: <b>${esc(bs[0][0])}</b> بإجمالي ${fm(bs[0][1])} (${(bs[0][1]/T*100).toFixed(1)}%).`);
+  if(bi.length)I.push(`أعلى الأصناف تكلفةً: <b>${esc(bi[0][0])}</b> بإجمالي ${fm(bi[0][1])}.`);
+  I.push(`أكبر فاتورة: رقم <b>${esc(mx.i.no)}</b> بقيمة ${fm(mx.v)}.`);
+  if(mons.length>1){const[a,b]=mons.slice(-2),p=a[1]?(b[1]-a[1])/a[1]*100:0;I.push(`مقارنة آخر شهرين: ${b[0]} (${fm(b[1])}) مقابل ${a[0]} (${fm(a[1])}) – معدل التغير ${p>0?'+':''}${p.toFixed(1)}%${Math.abs(p)>=25?(p>0?' ⚠ زيادة ملحوظة في المصروفات':' 📉 انخفاض ملحوظ في المصروفات'):''}.`)}
+  const cd=(t,h)=>`<div class="card"><b>${t}</b><div style="margin-top:8px">${h}</div></div>`;
+  const dsh=`<div class="grid kp">${K.map(k=>`<div class="card"><span>${k[0]}</span><b>${k[1]}</b></div>`).join('')}</div><div class="card" style="margin-top:12px"><b>💡 ملاحظات واستنتاجات</b><ul class="ins">${I.map(x=>`<li>${x}</li>`).join('')}</ul></div><div class="g2">${cd('قيمة الفواتير عبر الزمن',line(days))}${cd('المصروفات شهريًا',cols(mons))}${cd('التوزيع حسب نوع البيان',donut(bt,T))}${bs.length?cd('أعلى 10 موردين',bars(bs)):''}${cd('أعلى 10 أصناف تكلفة',bars(bi))}</div>`;
+  const tb=`<div class="g2">${cd('حسب نوع البيان',tab(bt))}${cd('حسب السيارة',tab(bc))}</div>`,hd=`<p class="mu">الفلاتر المطبّقة: ${esc(fsum(F))}</p>`;
+  A.innerHTML=`<div class="row np" style="margin-bottom:12px"><button class="btn" id="b1">🖨 طباعة الداشبورد</button><button class="btn s" id="b2">🖨 طباعة التقرير</button><button class="btn s" id="b3">⬇ Excel</button></div>${dsh}${tb}`;
+  $('#b1').onclick=()=>pr('لوحة التحليلات',hd+dsh,1);$('#b2').onclick=()=>pr('تقرير التكاليف',hd+dsh+tb);
+  $('#b3').onclick=()=>xl(rs,'تقرير',[['حسب النوع',[['النوع','القيمة'],...bt]],['حسب السيارة',[['السيارة','القيمة'],...bc]],...(bs.length?[['حسب المورد',[['المورد','القيمة'],...bs]]]:[]),['المؤشرات',K.map(k=>[k[0],String(k[1])])]])};
+ rd=draw;bindP(F,draw,rep);draw()}
 function set(){
  $('#m').innerHTML=`<h2>إعدادات الحساب</h2><div class="card" style="max-width:460px"><b>تغيير كلمة المرور – ${esc(me.name)}</b>
  <div class="f" style="margin-top:10px"><label for="p0">كلمة المرور الحالية</label><input id="p0" type="password"></div><div class="f"><label for="p1">كلمة المرور الجديدة</label><input id="p1" type="password"></div><div class="f"><label for="p2">تأكيد كلمة المرور الجديدة</label><input id="p2" type="password"></div>
@@ -242,7 +334,7 @@ function set(){
   me.pw=$('#p1').value;saveUsers();toast('تم تغيير كلمة المرور');set()};
  document.querySelectorAll('[data-u]').forEach(c=>c.onchange=()=>{const u=S.users.find(x=>x.id==c.dataset.u);u.perms[c.dataset.p]=c.checked?1:0;if(u===me&&!me.perms.perm){u.perms.perm=1;c.checked=true;toast('لا يمكنك سحب صلاحية الإدارة من نفسك')}saveUsers();toast('تم تحديث الصلاحيات')});
 }
-function refresh(){if(!me)return;if(view==='dash')dash();else if(view==='list'){if(document.activeElement&&document.activeElement.id==='sq'&&ld)ld();else list()}else if(view==='rep'&&can('rep')&&rd)rd()}
+function refresh(){if(!me)return;if(view==='dash')dash();else if(view==='list'){if(ld)ld();else list()}else if(view==='rep'&&can('rep')&&rd)rd()}
 login();
 (async()=>{try{
  DB=makeDB();
@@ -254,7 +346,7 @@ login();
   else if(!s.fromCache){DB.doc('settings/users').set({list:S.users}).catch(er)}
   if((s.exists||!s.fromCache)&&!ready){ready=true;clearTimeout(tm);setSy('متصل بقاعدة البيانات ✓',0)}
  },e=>setSy('تعذر الاتصال: '+((e&&e.message)||e),1));
- DB.collection('invoices').onSnapshot(s=>{S.inv=s.docs.map(d=>cp(d.data()));refresh()},e=>setSy('تعذر تحميل الفواتير: '+((e&&e.message)||e),1));
+ DB.collection('invoices').onSnapshot(s=>{S.inv=s.docs.map(d=>cp(d.data()));S.ld=1;refresh()},e=>setSy('تعذر تحميل الفواتير: '+((e&&e.message)||e),1));
  DB.collection('deleted').onSnapshot(s=>{S.del=s.docs.map(d=>cp(d.data())).sort((a,b)=>a.ts-b.ts);refresh()},()=>{});
 }catch(e){setSy('خطأ: '+e.message,1)}
 })();
